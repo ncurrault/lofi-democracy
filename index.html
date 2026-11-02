@@ -319,6 +319,15 @@
     text-overflow: ellipsis;
   }
   .track-meta { font-size: 10px; color: var(--fg3); letter-spacing: 0.08em; margin-top: 2px; }
+  .music-hint {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+    animation: hint-pulse 2s ease-in-out infinite;
+  }
+  .music-hint.hidden { display: none; }
+  @keyframes hint-pulse { 50% { opacity: 0.4; } }
 
   .player-controls { display: flex; align-items: center; gap: 8px; }
   .ctrl-btn {
@@ -606,6 +615,7 @@
       <div class="player-info">
         <div class="track-name">lofi hip hop radio 📚 beats to relax/study to</div>
         <div class="track-meta">Lofi Girl · live on YouTube</div>
+        <div class="music-hint" id="music-hint">click anywhere to start the music</div>
       </div>
       <div class="player-controls">
         <button class="ctrl-btn play-pause" id="play-pause-btn" title="Play/Pause">&#9654;</button>
@@ -830,11 +840,14 @@ let isPlaying = false;
 const playPauseBtn = document.getElementById('play-pause-btn');
 const vinylEl = document.getElementById('vinyl-emoji');
 const volSlider = document.getElementById('vol-slider');
+const musicHint = document.getElementById('music-hint');
 
 function setPlaying(val) {
   isPlaying = val;
   playPauseBtn.innerHTML = isPlaying ? '&#9646;&#9646;' : '&#9654;';
   vinylEl.classList.toggle('playing', isPlaying);
+  // Once sound has started the hint has done its job.
+  if (isPlaying) musicHint.classList.add('hidden');
 }
 
 function playWithSound() {
