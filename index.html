@@ -373,16 +373,6 @@
   }
   #vol-slider { width: 80px; }
 
-  .track-progress-area {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-  #progress-slider { flex: 1; }
-  .time-label { font-size: 10px; color: var(--fg3); white-space: nowrap; min-width: 32px; }
-
   /* auto-switch toggle area */
   .auto-section {
     display: flex;
@@ -431,22 +421,15 @@
     margin-left: auto;
   }
 
-  /* audio file drop */
-  .audio-drop {
-    border: 1px dashed var(--fg3);
+  /* music stream embed: YouTube requires embedded players to be at least 200x200 */
+  .music-embed {
+    width: 100%;
+    height: 200px;
     border-radius: 3px;
-    padding: 10px;
-    text-align: center;
-    font-size: 10px;
-    color: var(--fg3);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s;
-    margin-top: 4px;
+    overflow: hidden;
+    background: #000;
   }
-  .audio-drop:hover, .audio-drop.drag-over { border-color: var(--accent); color: var(--accent); }
-  .audio-drop input[type=file] { display: none; }
+  .music-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
 
   /* attribution modal */
   .modal-backdrop {
@@ -583,14 +566,10 @@
       </div>
     </div>
 
-    <!-- Audio drop zone in sidebar -->
+    <!-- Music stream -->
     <div class="sidebar-section" style="margin-top:auto;">
       <div class="sidebar-label">music</div>
-      <div class="audio-drop" id="audio-drop" onclick="document.getElementById('audio-file-input').click()">
-        <input type="file" id="audio-file-input" accept="audio/*" multiple>
-        drop mp3s here or click to browse
-      </div>
-      <div id="track-list" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
+      <div class="music-embed"><div id="yt-player"></div></div>
     </div>
 
   </div>
@@ -602,18 +581,11 @@
         <span class="vinyl-spin" id="vinyl-emoji">🎵</span>
       </div>
       <div class="player-info">
-        <div class="track-name" id="track-name">no track loaded</div>
-        <div class="track-meta" id="track-meta">drop mp3 files into the sidebar →</div>
+        <div class="track-name">lofi hip hop radio 📚 beats to relax/study to</div>
+        <div class="track-meta">Lofi Girl · live on YouTube</div>
       </div>
       <div class="player-controls">
-        <button class="ctrl-btn" id="prev-btn" title="Previous">&#9664;&#9664;</button>
         <button class="ctrl-btn play-pause" id="play-pause-btn" title="Play/Pause">&#9654;</button>
-        <button class="ctrl-btn" id="next-btn" title="Next">&#9654;&#9654;</button>
-      </div>
-      <div class="track-progress-area">
-        <span class="time-label" id="time-current">0:00</span>
-        <input type="range" id="progress-slider" min="0" max="100" value="0" step="0.1">
-        <span class="time-label" id="time-total">0:00</span>
       </div>
       <div class="volume-area">
         <span class="vol-icon">♪</span>
@@ -630,10 +602,7 @@
   <div class="modal">
     <button class="modal-close" id="modal-close">×</button>
     <h2>credits</h2>
-    <p>All music is used under the <a href="https://pixabay.com/service/license-summary/">Pixabay Content License</a>, which permits free use including in streaming and web projects.</p>
-    <p>Tracks sourced from:<br>
-      <a href="https://pixabay.com/music/search/lofi/" target="_blank" rel="noopener">pixabay.com/music/search/lofi/</a>
-    </p>
+    <p>Music is the <a href="https://www.youtube.com/watch?v=rFZHOHl-L8A" target="_blank" rel="noopener">lofi hip hop radio</a> livestream by <a href="https://www.youtube.com/@LofiGirl" target="_blank" rel="noopener">Lofi Girl</a>, embedded from YouTube.</p>
     <p style="color:var(--fg3);font-size:11px;">This site is a non-commercial project. Video streams are public election department livestreams sourced from the <a href="https://sfelections.org/tools/election_video_stream/">San Francisco Department of Elections</a>.</p>
   </div>
 </div>
@@ -826,42 +795,18 @@ document.getElementById('interval-select').addEventListener('change', e => {
 });
 
 // ─────────────────────────────────────────────
-// AUDIO PLAYER
+// MUSIC STREAM
 // ─────────────────────────────────────────────
-const audio = new Audio();
-audio.loop = false;
-let tracks = [];
-let trackIdx = 0;
+// Lofi Girl's livestream, played through the YouTube IFrame API so the player
+// bar can drive it. Browsers only allow muted autoplay, so the stream starts
+// muted and unmutes on the first click or keypress.
+const MUSIC_VIDEO_ID = 'rFZHOHl-L8A';
+let musicPlayer = null;
 let isPlaying = false;
 
 const playPauseBtn = document.getElementById('play-pause-btn');
 const vinylEl = document.getElementById('vinyl-emoji');
-const trackNameEl = document.getElementById('track-name');
-const trackMetaEl = document.getElementById('track-meta');
-const progressSlider = document.getElementById('progress-slider');
-const timeCurrent = document.getElementById('time-current');
-const timeTotal = document.getElementById('time-total');
 const volSlider = document.getElementById('vol-slider');
-
-audio.volume = parseFloat(volSlider.value);
-
-function formatTime(s) {
-  if (!isFinite(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2, '0')}`;
-}
-
-function loadTrack(idx) {
-  if (!tracks.length) return;
-  trackIdx = idx;
-  const t = tracks[idx];
-  audio.src = t.url;
-  trackNameEl.textContent = t.name;
-  trackMetaEl.textContent = `track ${idx + 1} of ${tracks.length}`;
-  renderTrackList();
-  if (isPlaying) audio.play().catch(() => {});
-}
 
 function setPlaying(val) {
   isPlaying = val;
@@ -869,87 +814,49 @@ function setPlaying(val) {
   vinylEl.classList.toggle('playing', isPlaying);
 }
 
+function playWithSound() {
+  if (!musicPlayer) return;
+  musicPlayer.unMute();
+  musicPlayer.setVolume(volSlider.value * 100);
+  musicPlayer.playVideo();
+  // Unmuting an already-playing stream fires no state change.
+  setPlaying(true);
+}
+
+function onYouTubeIframeAPIReady() {
+  musicPlayer = new YT.Player('yt-player', {
+    videoId: MUSIC_VIDEO_ID,
+    playerVars: { autoplay: 1, mute: 1, playsinline: 1, rel: 0 },
+    events: {
+      onReady: () => musicPlayer.setVolume(volSlider.value * 100),
+      onStateChange: e => setPlaying(e.data === YT.PlayerState.PLAYING && !musicPlayer.isMuted()),
+    },
+  });
+}
+
+const unmuteOnInteraction = () => {
+  if (!musicPlayer) return;
+  playWithSound();
+  document.removeEventListener('click', unmuteOnInteraction);
+  document.removeEventListener('keydown', unmuteOnInteraction);
+};
+document.addEventListener('click', unmuteOnInteraction);
+document.addEventListener('keydown', unmuteOnInteraction);
+
 playPauseBtn.addEventListener('click', () => {
-  if (!tracks.length) return;
-  if (isPlaying) { audio.pause(); setPlaying(false); }
-  else { audio.play().catch(() => {}); setPlaying(true); }
-});
-
-document.getElementById('prev-btn').addEventListener('click', () => {
-  trackIdx = (trackIdx - 1 + tracks.length) % tracks.length;
-  loadTrack(trackIdx);
-  setPlaying(true);
-  audio.play().catch(() => {});
-});
-
-document.getElementById('next-btn').addEventListener('click', () => {
-  trackIdx = (trackIdx + 1) % tracks.length;
-  loadTrack(trackIdx);
-  setPlaying(true);
-  audio.play().catch(() => {});
-});
-
-audio.addEventListener('ended', () => {
-  trackIdx = (trackIdx + 1) % tracks.length;
-  loadTrack(trackIdx);
-  audio.play().catch(() => {});
-});
-
-audio.addEventListener('timeupdate', () => {
-  if (!audio.duration) return;
-  const pct = (audio.currentTime / audio.duration) * 100;
-  progressSlider.value = pct;
-  timeCurrent.textContent = formatTime(audio.currentTime);
-  timeTotal.textContent = formatTime(audio.duration);
-});
-
-progressSlider.addEventListener('input', () => {
-  if (!audio.duration) return;
-  audio.currentTime = (progressSlider.value / 100) * audio.duration;
+  if (!musicPlayer) return;
+  if (isPlaying) { musicPlayer.pauseVideo(); setPlaying(false); }
+  else playWithSound();
 });
 
 volSlider.addEventListener('input', () => {
-  audio.volume = parseFloat(volSlider.value);
+  if (!musicPlayer) return;
+  musicPlayer.setVolume(volSlider.value * 100);
 });
 
-// File input
-const audioFileInput = document.getElementById('audio-file-input');
-audioFileInput.addEventListener('change', e => handleAudioFiles(e.target.files));
-
-const audioDrop = document.getElementById('audio-drop');
-audioDrop.addEventListener('dragover', e => { e.preventDefault(); audioDrop.classList.add('drag-over'); });
-audioDrop.addEventListener('dragleave', () => audioDrop.classList.remove('drag-over'));
-audioDrop.addEventListener('drop', e => {
-  e.preventDefault();
-  audioDrop.classList.remove('drag-over');
-  handleAudioFiles(e.dataTransfer.files);
-});
-
-function handleAudioFiles(files) {
-  const audioFiles = Array.from(files).filter(f => f.type.startsWith('audio/'));
-  if (!audioFiles.length) return;
-  audioFiles.forEach(f => {
-    tracks.push({ name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f) });
-  });
-  renderTrackList();
-  if (tracks.length === audioFiles.length) {
-    // First batch — auto-load and play
-    loadTrack(0);
-    setPlaying(true);
-    audio.play().catch(() => {});
-  }
-}
-
-function renderTrackList() {
-  const list = document.getElementById('track-list');
-  list.innerHTML = tracks.map((t, i) => `
-    <div onclick="loadTrack(${i});setPlaying(true);audio.play().catch(()=>{})"
-         style="font-size:10px;padding:4px 6px;border-radius:3px;cursor:pointer;color:${i===trackIdx?'var(--accent)':'var(--fg3)'};background:${i===trackIdx?'var(--bg3)':'transparent'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.04em;"
-         title="${t.name}">
-      ${i===trackIdx?'▶ ':''}${t.name}
-    </div>
-  `).join('');
-}
+const ytApi = document.createElement('script');
+ytApi.src = 'https://www.youtube.com/iframe_api';
+document.head.append(ytApi);
 
 // streams.json is generated by scripts/fetch_streams.py. Skip the HTTP cache
 // so rerunning the script takes effect on the next reload.
@@ -962,36 +869,6 @@ fetch('streams.json', { cache: 'no-cache' })
     resetCountdown();
   })
   .catch(err => console.error('Could not load streams.json', err));
-
-// ─────────────────────────────────────────────
-// PRELOADED TRACKS
-// ─────────────────────────────────────────────
-const preloadedTracks = [
-  { name: 'Lofi Hiphop by SolarFLEX',      url: 'media/solarflex-lofi-hiphop-541533.mp3' },
-  { name: 'LoFi - LoFi Music by The_Mountain',     url: 'media/the_mountain-lofi-lofi-music-496553.mp3' },
-  { name: 'LoFi - LoFi Music by microstar',     url: 'media/mirostar-lofi-lofi-music-531487.mp3' },
-  { name: 'Lofi - Lofi Girl - Lofi Chill 2 by microstar',     url: 'media/mirostar-lofi-lofi-girl-lofi-chill-2-531491.mp3' },
-  { name: 'LoFi - LoFi Music - Lofi Chill by MondaMusic', url: 'media/mondamusic-lofi-lofi-music-lofi-chill-529558.mp3'}
-];
-preloadedTracks.forEach(t => tracks.push(t));
-if (tracks.length) {
-  renderTrackList();
-  loadTrack(0);
-  // Autoplay on first user interaction (browsers block autoplay until gesture)
-  const tryAutoplay = () => {
-    audio.play().then(() => {
-      setPlaying(true);
-      document.removeEventListener('click', tryAutoplay);
-      document.removeEventListener('keydown', tryAutoplay);
-    }).catch(() => {});
-  };
-  // Try immediately (works if page was navigated to with a click)
-  audio.play().then(() => { setPlaying(true); }).catch(() => {
-    // Fall back to first interaction
-    document.addEventListener('click', tryAutoplay);
-    document.addEventListener('keydown', tryAutoplay);
-  });
-}
 
 // ─────────────────────────────────────────────
 // ATTRIBUTION MODAL
