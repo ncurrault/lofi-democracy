@@ -73,23 +73,6 @@
     letter-spacing: 0.01em;
   }
   .site-title span { color: var(--fg2); font-size: 13px; font-family: var(--mono); font-style: normal; margin-left: 10px; }
-  .live-pill {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg3);
-    border: 1px solid var(--red);
-    border-radius: 3px;
-    padding: 4px 10px;
-    font-size: 11px;
-    color: var(--red);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--red);
-    animation: blink 1.4s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
   /* ── MAIN VIDEO ── */
   .video-section {
@@ -537,7 +520,6 @@
     <div class="site-title">
       lofi beats to chill/enjoy democracy to
     </div>
-    <div class="live-pill"><span class="live-dot"></span> live</div>
   </header>
 
   <!-- MAIN VIDEO -->
@@ -647,7 +629,7 @@
 <div class="modal-backdrop" id="modal-backdrop">
   <div class="modal">
     <button class="modal-close" id="modal-close">×</button>
-    <h2>music credits</h2>
+    <h2>credits</h2>
     <p>All music is used under the <a href="https://pixabay.com/service/license-summary/">Pixabay Content License</a>, which permits free use including in streaming and web projects.</p>
     <p>Tracks sourced from:<br>
       <a href="https://pixabay.com/music/search/lofi/" target="_blank" rel="noopener">pixabay.com/music/search/lofi/</a>
