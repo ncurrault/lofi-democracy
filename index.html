@@ -448,48 +448,6 @@
     margin-left: auto;
   }
 
-  /* config panel */
-  .config-section {
-    padding: 14px;
-    overflow-y: auto;
-    flex-shrink: 0;
-  }
-  .config-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 10px;
-  }
-  .config-row label { font-size: 10px; color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase; }
-  .config-row input {
-    background: var(--bg3);
-    border: 1px solid var(--fg3);
-    color: var(--fg);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 5px 8px;
-    border-radius: 3px;
-    outline: none;
-    width: 100%;
-  }
-  .config-row input:focus { border-color: var(--accent2); }
-  .add-cam-btn {
-    width: 100%;
-    background: none;
-    border: 1px dashed var(--fg3);
-    color: var(--fg3);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 6px;
-    border-radius: 3px;
-    cursor: pointer;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    transition: all 0.15s;
-    margin-top: 4px;
-  }
-  .add-cam-btn:hover { border-color: var(--accent2); color: var(--accent2); }
-
   /* audio file drop */
   .audio-drop {
     border: 1px dashed var(--fg3);
@@ -589,7 +547,7 @@
 
     <div class="video-placeholder" id="video-placeholder">
       <div class="placeholder-icon">📹</div>
-      <div class="placeholder-text">Add a camera stream to begin</div>
+      <div class="placeholder-text">Loading cameras…</div>
     </div>
 
     <div class="cam-hud">
@@ -634,24 +592,12 @@
     <div class="sidebar-section" style="padding-bottom:8px;">
       <div class="sidebar-label">cameras</div>
 
-      <!-- Add camera form -->
-      <div class="config-section" style="padding:0;margin-bottom:6px;">
-        <div class="config-row">
-          <label>stream URL</label>
-          <input type="text" id="input-url" placeholder="https://…/stream.m3u8" />
-        </div>
-        <div class="config-row">
-          <label>label</label>
-          <input type="text" id="input-label" placeholder="Ballot sorting table A" />
-        </div>
-        <button class="add-cam-btn" id="add-cam-btn">+ add camera</button>
-      </div>
     </div>
 
     <!-- Camera list -->
     <div class="cam-list" id="cam-list">
       <div style="font-size:11px;color:var(--fg3);text-align:center;padding:20px 0;letter-spacing:0.06em;">
-        no cameras added yet
+        loading cameras…
       </div>
     </div>
 
@@ -734,30 +680,11 @@ mainHls.attachMedia(mainVideo);
 // ─────────────────────────────────────────────
 // CAMERA MANAGEMENT
 // ─────────────────────────────────────────────
-function addCamera(url, label, idOverride) {
-  if (!url) return;
-  const id = idOverride ?? Date.now();
-  const cam = { id, url, label: label || `Cam ${state.cameras.length + 1}`, motionScore: 0, lastPixels: null };
+function addCamera(url, label, id) {
+  const cam = { id, url, label, motionScore: 0, lastPixels: null };
   state.cameras.push(cam);
   renderCamList();
   if (state.cameras.length === 1) switchTo(id);
-  updatePlaceholder();
-}
-
-function removeCamera(id) {
-  const idx = state.cameras.findIndex(c => c.id === id);
-  if (idx === -1) return;
-  state.cameras.splice(idx, 1);
-  if (state.activeCam === id) {
-    const next = state.cameras[0];
-    if (next) switchTo(next.id);
-    else {
-      state.activeCam = null;
-      document.getElementById('hud-cam-name').textContent = '—';
-      document.getElementById('hud-cam-label').textContent = 'no stream loaded';
-    }
-  }
-  renderCamList();
   updatePlaceholder();
 }
 
@@ -883,7 +810,7 @@ function updateCountdownDisplay() {
 function renderCamList() {
   const list = document.getElementById('cam-list');
   if (state.cameras.length === 0) {
-    list.innerHTML = '<div style="font-size:11px;color:var(--fg3);text-align:center;padding:20px 0;letter-spacing:0.06em;">no cameras added yet</div>';
+    list.innerHTML = '<div style="font-size:11px;color:var(--fg3);text-align:center;padding:20px 0;letter-spacing:0.06em;">loading cameras…</div>';
     return;
   }
   list.innerHTML = state.cameras.map(cam => `
@@ -898,9 +825,6 @@ function renderCamList() {
           <div class="score-bar-bg"><div class="score-bar-fill" id="score-fill-${cam.id}" style="width:0%"></div></div>
         </div>
       </div>
-      <button onclick="event.stopPropagation();removeCamera(${cam.id})"
-              style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;"
-              title="Remove">×</button>
     </div>
   `).join('');
 }
@@ -908,19 +832,6 @@ function renderCamList() {
 // ─────────────────────────────────────────────
 // UI EVENTS
 // ─────────────────────────────────────────────
-document.getElementById('add-cam-btn').addEventListener('click', () => {
-  const url = document.getElementById('input-url').value.trim();
-  const label = document.getElementById('input-label').value.trim();
-  if (!url) return;
-  addCamera(url, label);
-  document.getElementById('input-url').value = '';
-  document.getElementById('input-label').value = '';
-});
-
-document.getElementById('input-url').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('add-cam-btn').click();
-});
-
 document.getElementById('auto-toggle').addEventListener('change', e => {
   state.autoSwitch = e.target.checked;
   resetCountdown();
@@ -961,10 +872,12 @@ function formatTime(s) {
 
 function loadTrack(idx) {
   if (!tracks.length) return;
+  trackIdx = idx;
   const t = tracks[idx];
   audio.src = t.url;
   trackNameEl.textContent = t.name;
   trackMetaEl.textContent = `track ${idx + 1} of ${tracks.length}`;
+  renderTrackList();
   if (isPlaying) audio.play().catch(() => {});
 }
 
@@ -1048,7 +961,7 @@ function handleAudioFiles(files) {
 function renderTrackList() {
   const list = document.getElementById('track-list');
   list.innerHTML = tracks.map((t, i) => `
-    <div onclick="trackIdx=${i};loadTrack(${i});setPlaying(true);audio.play().catch(()=>{})"
+    <div onclick="loadTrack(${i});setPlaying(true);audio.play().catch(()=>{})"
          style="font-size:10px;padding:4px 6px;border-radius:3px;cursor:pointer;color:${i===trackIdx?'var(--accent)':'var(--fg3)'};background:${i===trackIdx?'var(--bg3)':'transparent'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.04em;"
          title="${t.name}">
       ${i===trackIdx?'▶ ':''}${t.name}
@@ -1060,7 +973,12 @@ function renderTrackList() {
 // so rerunning the script takes effect on the next reload.
 fetch('streams.json', { cache: 'no-cache' })
   .then(r => r.json())
-  .then(cams => cams.forEach(cam => addCamera(cam.url, cam.label, cam.id)))
+  .then(cams => {
+    cams.forEach(cam => addCamera(cam.url, cam.label, cam.id));
+    // The countdown only runs with 2+ cameras, and the resetCountdown() at the
+    // bottom of this script fires before the fetch resolves.
+    resetCountdown();
+  })
   .catch(err => console.error('Could not load streams.json', err));
 
 // ─────────────────────────────────────────────
