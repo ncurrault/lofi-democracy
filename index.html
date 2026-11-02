@@ -1111,15 +1111,6 @@ document.getElementById('modal-backdrop').addEventListener('click', e => {
 // ─────────────────────────────────────────────
 setInterval(runMotionDetection, 2000);
 resetCountdown();
-
-// simulated viewer count for fun
-let viewers = 47 + Math.floor(Math.random() * 30);
-document.getElementById('viewer-count').textContent = viewers + ' watching';
-setInterval(() => {
-  viewers += Math.floor(Math.random() * 5) - 2;
-  viewers = Math.max(10, viewers);
-  document.getElementById('viewer-count').textContent = viewers + ' watching';
-}, 8000);
 </script>
 </body>
 </html>
