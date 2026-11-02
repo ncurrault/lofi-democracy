@@ -492,6 +492,29 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg2); }
   ::-webkit-scrollbar-thumb { background: var(--fg3); border-radius: 2px; }
+
+  /* ── MOBILE: stack video above the sidebar instead of beside it ── */
+  @media (max-width: 760px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      height: 100dvh;
+    }
+    header { padding: 10px 16px; }
+    .site-title { font-size: 18px; }
+    .video-section { aspect-ratio: 16 / 9; }
+    .sidebar {
+      border-left: none;
+      border-top: 1px solid var(--fg3);
+      overflow-y: auto;
+    }
+    .cam-list { flex: none; overflow: visible; }
+    .music-embed iframe { max-width: 100%; }
+    .sidebar-section[style*="margin-top:auto"] { margin-top: 0 !important; }
+    .player { padding: 10px 16px; }
+    .player-inner { gap: 10px; }
+    .volume-area { display: none; }
+  }
 </style>
 </head>
 <body>
