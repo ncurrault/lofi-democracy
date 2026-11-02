@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lofi vote count 🗳️</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0c0b0f;
+    --bg2:       #131118;
+    --bg3:       #1a1825;
+    --fg:        #e8e0d0;
+    --fg2:       #9b9080;
+    --fg3:       #4a4560;
+    --accent:    #c8b46a;
+    --accent2:   #7c6fa0;
+    --green:     #5a8a5a;
+    --green-lit: #7dc47d;
+    --red:       #a05050;
+    --mono: 'Space Mono', monospace;
+    --serif: 'Instrument Serif', serif;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ── GRAIN OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.35;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--fg3);
+    background: var(--bg);
+  }
+  .site-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }
+  .site-title span { color: var(--fg2); font-size: 13px; font-family: var(--mono); font-style: normal; margin-left: 10px; }
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--red);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red);
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── MAIN VIDEO ── */
+  .video-section {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #main-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .video-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  /* scanlines */
+  .video-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+  }
+  /* vignette */
+  .video-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 55%, rgba(0,0,0,0.7) 100%);
+    z-index: 1;
+  }
+
+  .cam-hud {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 40px 16px 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .cam-name-hud {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .cam-name-hud strong { color: var(--accent); font-weight: 700; display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .switch-countdown {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.06em;
+    text-align: right;
+  }
+  .switch-countdown strong { color: var(--accent2); display: block; font-size: 16px; }
+
+  .motion-indicator {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 18px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .motion-bar {
+    width: 3px;
+    background: var(--green-lit);
+    border-radius: 1px;
+    opacity: 0.7;
+    transition: height 0.3s ease;
+  }
+
+  /* loading/error state */
+  .video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--bg);
+    z-index: 3;
+  }
+  .video-placeholder.hidden { display: none; }
+  .placeholder-icon { font-size: 40px; opacity: 0.2; }
+  .placeholder-text { font-size: 12px; color: var(--fg3); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--fg3);
+    background: var(--bg2);
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    padding: 14px;
+    border-bottom: 1px solid var(--fg3);
+  }
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg3);
+    margin-bottom: 10px;
+  }
+
+  /* camera thumbs */
+  .cam-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+    padding: 10px;
+  }
+
+  .cam-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--bg3);
+  }
+  .cam-item:hover { border-color: var(--fg3); }
+  .cam-item.active { border-color: var(--accent); background: rgba(200, 180, 106, 0.06); }
+  .cam-item.active .cam-item-name { color: var(--accent); }
+
+  .cam-thumb-preview {
+    width: 54px;
+    height: 34px;
+    background: #000;
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .cam-thumb-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .motion-badge {
+    position: absolute;
+    top: 2px; right: 2px;
+    font-size: 8px;
+    background: var(--green);
+    color: #fff;
+    padding: 1px 3px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .motion-badge.visible { opacity: 1; }
+
+  .cam-item-info { flex: 1; min-width: 0; }
+  .cam-item-name { font-size: 11px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cam-item-score {
+    font-size: 10px;
+    color: var(--fg3);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-bar-bg { flex: 1; height: 2px; background: var(--bg); border-radius: 1px; overflow: hidden; }
+  .score-bar-fill { height: 100%; background: var(--accent2); border-radius: 1px; transition: width 0.5s ease; }
+
+  /* ── AUDIO PLAYER ── */
+  .player {
+    border-top: 1px solid var(--fg3);
+    background: var(--bg);
+    padding: 12px 16px;
+    grid-column: 1 / -1;
+  }
+
+  .player-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 900px;
+  }
+
+  .player-art {
+    width: 42px; height: 42px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--fg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .player-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(200,180,106,0.15), transparent);
+  }
+  .vinyl-spin {
+    animation: spin 4s linear infinite;
+    animation-play-state: paused;
+  }
+  .vinyl-spin.playing { animation-play-state: running; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .player-info { flex: 1; min-width: 0; }
+  .track-name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .track-meta { font-size: 10px; color: var(--fg3); letter-spacing: 0.08em; margin-top: 2px; }
+
+  .player-controls { display: flex; align-items: center; gap: 8px; }
+  .ctrl-btn {
+    background: none;
+    border: 1px solid var(--fg3);
+    color: var(--fg2);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.play-pause {
+    width: 38px; height: 38px;
+    border-color: var(--accent);
+    color: var(--accent);
+    font-size: 14px;
+  }
+  .ctrl-btn.play-pause:hover { background: rgba(200,180,106,0.12); }
+
+  .volume-area {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .vol-icon { color: var(--fg3); font-size: 14px; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--fg3);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+  #vol-slider { width: 80px; }
+
+  .track-progress-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  #progress-slider { flex: 1; }
+  .time-label { font-size: 10px; color: var(--fg3); white-space: nowrap; min-width: 32px; }
+
+  /* auto-switch toggle area */
+  .auto-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--fg3);
+    background: var(--bg2);
+  }
+  .toggle-label { font-size: 11px; color: var(--fg2); }
+  .toggle-switch {
+    position: relative;
+    width: 32px; height: 18px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--fg3);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track::before {
+    content: '';
+    position: absolute;
+    left: 2px; top: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--green); }
+  .toggle-switch input:checked + .toggle-track::before { transform: translateX(14px); }
+
+  .interval-select {
+    background: var(--bg3);
+    border: 1px solid var(--fg3);
+    color: var(--fg2);
+    font-family: var(--mono);
+    font-size: 11px;
+    border-radius: 3px;
+    padding: 3px 6px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  /* config panel */
+  .config-section {
+    padding: 14px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .config-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .config-row label { font-size: 10px; color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase; }
+  .config-row input {
+    background: var(--bg3);
+    border: 1px solid var(--fg3);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 3px;
+    outline: none;
+    width: 100%;
+  }
+  .config-row input:focus { border-color: var(--accent2); }
+  .add-cam-btn {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--fg3);
+    color: var(--fg3);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .add-cam-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* audio file drop */
+  .audio-drop {
+    border: 1px dashed var(--fg3);
+    border-radius: 3px;
+    padding: 10px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--fg3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .audio-drop:hover, .audio-drop.drag-over { border-color: var(--accent); color: var(--accent); }
+  .audio-drop input[type=file] { display: none; }
+
+  /* attribution modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--fg3);
+    border-radius: 6px;
+    padding: 28px 32px;
+    max-width: 480px;
+    width: 90%;
+    position: relative;
+  }
+  .modal h2 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .modal p { font-size: 12px; color: var(--fg2); line-height: 1.7; margin-bottom: 14px; }
+  .modal a { color: var(--accent2); text-decoration: none; }
+  .modal a:hover { text-decoration: underline; }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: none;
+    border: none;
+    color: var(--fg3);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--fg); }
+  .credits-btn {
+    background: none;
+    border: 1px solid var(--fg3);
+    color: var(--fg3);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .credits-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--fg3); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- HEADER -->
+  <header>
+    <div class="site-title">
+      lofi beats to chill/enjoy democracy to
+    </div>
+    <div class="live-pill"><span class="live-dot"></span> live</div>
+  </header>
+
+  <!-- MAIN VIDEO -->
+  <div class="video-section">
+    <video id="main-video" autoplay muted playsinline></video>
+    <div class="video-overlay"></div>
+
+    <div class="video-placeholder" id="video-placeholder">
+      <div class="placeholder-icon">📹</div>
+      <div class="placeholder-text">Add a camera stream to begin</div>
+    </div>
+
+    <div class="cam-hud">
+      <div>
+        <div class="cam-name-hud">
+          <strong id="hud-cam-name">—</strong>
+          <span id="hud-cam-label">no stream loaded</span>
+        </div>
+      </div>
+      <div class="switch-countdown">
+        <strong id="countdown-num">—</strong>
+        <span>next switch</span>
+      </div>
+    </div>
+
+    <div class="motion-indicator" id="motion-indicator">
+      <div class="motion-bar" style="height:4px" id="mb1"></div>
+      <div class="motion-bar" style="height:4px" id="mb2"></div>
+      <div class="motion-bar" style="height:4px" id="mb3"></div>
+      <div class="motion-bar" style="height:4px" id="mb4"></div>
+      <div class="motion-bar" style="height:4px" id="mb5"></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="auto-section">
+      <span class="toggle-label">auto-switch</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="auto-toggle" checked>
+        <div class="toggle-track"></div>
+      </label>
+      <select class="interval-select" id="interval-select">
+        <option value="15">15s</option>
+        <option value="30" selected>30s</option>
+        <option value="60">60s</option>
+        <option value="120">2min</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section" style="padding-bottom:8px;">
+      <div class="sidebar-label">cameras</div>
+
+      <!-- Add camera form -->
+      <div class="config-section" style="padding:0;margin-bottom:6px;">
+        <div class="config-row">
+          <label>stream URL</label>
+          <input type="text" id="input-url" placeholder="https://…/stream.m3u8" />
+        </div>
+        <div class="config-row">
+          <label>label</label>
+          <input type="text" id="input-label" placeholder="Ballot sorting table A" />
+        </div>
+        <button class="add-cam-btn" id="add-cam-btn">+ add camera</button>
+      </div>
+    </div>
+
+    <!-- Camera list -->
+    <div class="cam-list" id="cam-list">
+      <div style="font-size:11px;color:var(--fg3);text-align:center;padding:20px 0;letter-spacing:0.06em;">
+        no cameras added yet
+      </div>
+    </div>
+
+    <!-- Audio drop zone in sidebar -->
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div class="sidebar-label">music</div>
+      <div class="audio-drop" id="audio-drop" onclick="document.getElementById('audio-file-input').click()">
+        <input type="file" id="audio-file-input" accept="audio/*" multiple>
+        drop mp3s here or click to browse
+      </div>
+      <div id="track-list" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+
+  </div>
+
+  <!-- PLAYER BAR -->
+  <div class="player">
+    <div class="player-inner">
+      <div class="player-art">
+        <span class="vinyl-spin" id="vinyl-emoji">🎵</span>
+      </div>
+      <div class="player-info">
+        <div class="track-name" id="track-name">no track loaded</div>
+        <div class="track-meta" id="track-meta">drop mp3 files into the sidebar →</div>
+      </div>
+      <div class="player-controls">
+        <button class="ctrl-btn" id="prev-btn" title="Previous">&#9664;&#9664;</button>
+        <button class="ctrl-btn play-pause" id="play-pause-btn" title="Play/Pause">&#9654;</button>
+        <button class="ctrl-btn" id="next-btn" title="Next">&#9654;&#9654;</button>
+      </div>
+      <div class="track-progress-area">
+        <span class="time-label" id="time-current">0:00</span>
+        <input type="range" id="progress-slider" min="0" max="100" value="0" step="0.1">
+        <span class="time-label" id="time-total">0:00</span>
+      </div>
+      <div class="volume-area">
+        <span class="vol-icon">♪</span>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.6">
+      </div>
+      <button class="credits-btn" id="credits-btn">© credits</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ATTRIBUTION MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">×</button>
+    <h2>music credits</h2>
+    <p>All music is used under the <a href="https://pixabay.com/service/license-summary/">Pixabay Content License</a>, which permits free use including in streaming and web projects.</p>
+    <p>Tracks sourced from:<br>
+      <a href="https://pixabay.com/music/search/lofi/" target="_blank" rel="noopener">pixabay.com/music/search/lofi/</a>
+    </p>
+    <p style="color:var(--fg3);font-size:11px;">This site is a non-commercial project. Video streams are public election department livestreams sourced from the <a href="https://sfelections.org/tools/election_video_stream/">San Francisco Department of Elections</a>.</p>
+  </div>
+</div>
+
+<!-- Hidden canvas for motion detection -->
+<canvas id="motion-canvas" style="display:none" width="160" height="90"></canvas>
+
+<script>
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const state = {
+  cameras: [],        // { id, url, label, hls, thumbVideo, lastFrame, motionScore }
+  activeCam: null,
+  autoSwitch: true,
+  interval: 30,
+  countdown: 30,
+  countdownTimer: null,
+  motionTimer: null,
+};
+
+const mainVideo = document.getElementById('main-video');
+const mainHls = new Hls({ enableWorker: false });
+mainHls.attachMedia(mainVideo);
+
+// ─────────────────────────────────────────────
+// CAMERA MANAGEMENT
+// ─────────────────────────────────────────────
+function addCamera(url, label, idOverride) {
+  if (!url) return;
+  const id = idOverride ?? Date.now();
+  const cam = { id, url, label: label || `Cam ${state.cameras.length + 1}`, motionScore: 0, lastPixels: null };
+  state.cameras.push(cam);
+  renderCamList();
+  if (state.cameras.length === 1) switchTo(id);
+  updatePlaceholder();
+}
+
+function removeCamera(id) {
+  const idx = state.cameras.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  state.cameras.splice(idx, 1);
+  if (state.activeCam === id) {
+    const next = state.cameras[0];
+    if (next) switchTo(next.id);
+    else {
+      state.activeCam = null;
+      document.getElementById('hud-cam-name').textContent = '—';
+      document.getElementById('hud-cam-label').textContent = 'no stream loaded';
+    }
+  }
+  renderCamList();
+  updatePlaceholder();
+}
+
+function switchTo(id) {
+  const cam = state.cameras.find(c => c.id === id);
+  if (!cam) return;
+  state.activeCam = id;
+
+  if (Hls.isSupported()) {
+    mainHls.loadSource(cam.url);
+    mainVideo.play().catch(() => {});
+  } else if (mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
+    mainVideo.src = cam.url;
+    mainVideo.play().catch(() => {});
+  }
+
+  document.getElementById('hud-cam-name').textContent = cam.label;
+  document.getElementById('hud-cam-label').textContent = new URL(cam.url).hostname;
+  renderCamList();
+  resetCountdown();
+}
+
+function updatePlaceholder() {
+  const ph = document.getElementById('video-placeholder');
+  ph.classList.toggle('hidden', state.cameras.length > 0);
+}
+
+// ─────────────────────────────────────────────
+// MOTION DETECTION
+// ─────────────────────────────────────────────
+const motionCanvas = document.getElementById('motion-canvas');
+const motionCtx = motionCanvas.getContext('2d');
+
+function sampleMotion(videoEl) {
+  if (!videoEl || videoEl.readyState < 2) return 0;
+  motionCtx.drawImage(videoEl, 0, 0, 160, 90);
+  const data = motionCtx.getImageData(0, 0, 160, 90).data;
+  // Collapse to grayscale
+  const gray = new Uint8Array(160 * 90);
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = (data[i*4] * 0.299 + data[i*4+1] * 0.587 + data[i*4+2] * 0.114);
+  }
+  return gray;
+}
+
+function computeDelta(a, b) {
+  if (!a || !b) return 0;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    sum += Math.abs(a[i] - b[i]);
+  }
+  return sum / a.length;
+}
+
+// We use the main video for motion (can't cross-origin sample thumb iframes)
+let lastMainPixels = null;
+
+function runMotionDetection() {
+  const pixels = sampleMotion(mainVideo);
+  const delta = computeDelta(lastMainPixels, pixels);
+  lastMainPixels = pixels;
+
+  // Update motion bars on HUD
+  const norm = Math.min(delta / 8, 1);
+  const bars = [document.getElementById('mb1'), document.getElementById('mb2'),
+                document.getElementById('mb3'), document.getElementById('mb4'),
+                document.getElementById('mb5')];
+  const heights = [4, 8, 14, 10, 6].map(h => Math.max(3, h * (0.3 + norm * 0.7)));
+  bars.forEach((b, i) => { if (b) b.style.height = heights[i] + 'px'; });
+
+  // Store score on active cam
+  const cam = state.cameras.find(c => c.id === state.activeCam);
+  if (cam) cam.motionScore = delta;
+
+  renderScores();
+}
+
+function renderScores() {
+  const max = Math.max(...state.cameras.map(c => c.motionScore || 0), 1);
+  state.cameras.forEach(cam => {
+    const fill = document.getElementById(`score-fill-${cam.id}`);
+    if (fill) fill.style.width = ((cam.motionScore / max) * 100).toFixed(1) + '%';
+  });
+}
+
+// ─────────────────────────────────────────────
+// AUTO-SWITCH
+// ─────────────────────────────────────────────
+function resetCountdown() {
+  clearInterval(state.countdownTimer);
+  state.countdown = state.interval;
+  updateCountdownDisplay();
+
+  if (state.autoSwitch && state.cameras.length > 1) {
+    state.countdownTimer = setInterval(() => {
+      state.countdown--;
+      updateCountdownDisplay();
+      if (state.countdown <= 0) {
+        autoSelectBest();
+        state.countdown = state.interval;
+      }
+    }, 1000);
+  }
+}
+
+function autoSelectBest() {
+  if (state.cameras.length < 2) return;
+  // Round-robin with motion bias: pick cam with highest score that isn't active
+  const others = state.cameras.filter(c => c.id !== state.activeCam);
+  const best = others.reduce((a, b) => (b.motionScore > a.motionScore ? b : a), others[0]);
+  switchTo(best.id);
+}
+
+function updateCountdownDisplay() {
+  const el = document.getElementById('countdown-num');
+  if (!el) return;
+  el.textContent = state.autoSwitch && state.cameras.length > 1 ? state.countdown + 's' : '—';
+}
+
+// ─────────────────────────────────────────────
+// CAM LIST RENDER
+// ─────────────────────────────────────────────
+function renderCamList() {
+  const list = document.getElementById('cam-list');
+  if (state.cameras.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--fg3);text-align:center;padding:20px 0;letter-spacing:0.06em;">no cameras added yet</div>';
+    return;
+  }
+  list.innerHTML = state.cameras.map(cam => `
+    <div class="cam-item ${cam.id === state.activeCam ? 'active' : ''}"
+         onclick="switchTo(${cam.id})">
+      <div class="cam-thumb-preview">
+        <div style="width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:0.4;">📹</div>
+      </div>
+      <div class="cam-item-info">
+        <div class="cam-item-name">${cam.label}</div>
+        <div class="cam-item-score">
+          <div class="score-bar-bg"><div class="score-bar-fill" id="score-fill-${cam.id}" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button onclick="event.stopPropagation();removeCamera(${cam.id})"
+              style="background:none;border:none;color:var(--fg3);cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;"
+              title="Remove">×</button>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+// UI EVENTS
+// ─────────────────────────────────────────────
+document.getElementById('add-cam-btn').addEventListener('click', () => {
+  const url = document.getElementById('input-url').value.trim();
+  const label = document.getElementById('input-label').value.trim();
+  if (!url) return;
+  addCamera(url, label);
+  document.getElementById('input-url').value = '';
+  document.getElementById('input-label').value = '';
+});
+
+document.getElementById('input-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('add-cam-btn').click();
+});
+
+document.getElementById('auto-toggle').addEventListener('change', e => {
+  state.autoSwitch = e.target.checked;
+  resetCountdown();
+  updateCountdownDisplay();
+});
+
+document.getElementById('interval-select').addEventListener('change', e => {
+  state.interval = parseInt(e.target.value);
+  resetCountdown();
+});
+
+// ─────────────────────────────────────────────
+// AUDIO PLAYER
+// ─────────────────────────────────────────────
+const audio = new Audio();
+audio.loop = false;
+let tracks = [];
+let trackIdx = 0;
+let isPlaying = false;
+
+const playPauseBtn = document.getElementById('play-pause-btn');
+const vinylEl = document.getElementById('vinyl-emoji');
+const trackNameEl = document.getElementById('track-name');
+const trackMetaEl = document.getElementById('track-meta');
+const progressSlider = document.getElementById('progress-slider');
+const timeCurrent = document.getElementById('time-current');
+const timeTotal = document.getElementById('time-total');
+const volSlider = document.getElementById('vol-slider');
+
+audio.volume = parseFloat(volSlider.value);
+
+function formatTime(s) {
+  if (!isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function loadTrack(idx) {
+  if (!tracks.length) return;
+  const t = tracks[idx];
+  audio.src = t.url;
+  trackNameEl.textContent = t.name;
+  trackMetaEl.textContent = `track ${idx + 1} of ${tracks.length}`;
+  if (isPlaying) audio.play().catch(() => {});
+}
+
+function setPlaying(val) {
+  isPlaying = val;
+  playPauseBtn.innerHTML = isPlaying ? '&#9646;&#9646;' : '&#9654;';
+  vinylEl.classList.toggle('playing', isPlaying);
+}
+
+playPauseBtn.addEventListener('click', () => {
+  if (!tracks.length) return;
+  if (isPlaying) { audio.pause(); setPlaying(false); }
+  else { audio.play().catch(() => {}); setPlaying(true); }
+});
+
+document.getElementById('prev-btn').addEventListener('click', () => {
+  trackIdx = (trackIdx - 1 + tracks.length) % tracks.length;
+  loadTrack(trackIdx);
+  setPlaying(true);
+  audio.play().catch(() => {});
+});
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  trackIdx = (trackIdx + 1) % tracks.length;
+  loadTrack(trackIdx);
+  setPlaying(true);
+  audio.play().catch(() => {});
+});
+
+audio.addEventListener('ended', () => {
+  trackIdx = (trackIdx + 1) % tracks.length;
+  loadTrack(trackIdx);
+  audio.play().catch(() => {});
+});
+
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  progressSlider.value = pct;
+  timeCurrent.textContent = formatTime(audio.currentTime);
+  timeTotal.textContent = formatTime(audio.duration);
+});
+
+progressSlider.addEventListener('input', () => {
+  if (!audio.duration) return;
+  audio.currentTime = (progressSlider.value / 100) * audio.duration;
+});
+
+volSlider.addEventListener('input', () => {
+  audio.volume = parseFloat(volSlider.value);
+});
+
+// File input
+const audioFileInput = document.getElementById('audio-file-input');
+audioFileInput.addEventListener('change', e => handleAudioFiles(e.target.files));
+
+const audioDrop = document.getElementById('audio-drop');
+audioDrop.addEventListener('dragover', e => { e.preventDefault(); audioDrop.classList.add('drag-over'); });
+audioDrop.addEventListener('dragleave', () => audioDrop.classList.remove('drag-over'));
+audioDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  audioDrop.classList.remove('drag-over');
+  handleAudioFiles(e.dataTransfer.files);
+});
+
+function handleAudioFiles(files) {
+  const audioFiles = Array.from(files).filter(f => f.type.startsWith('audio/'));
+  if (!audioFiles.length) return;
+  audioFiles.forEach(f => {
+    tracks.push({ name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f) });
+  });
+  renderTrackList();
+  if (tracks.length === audioFiles.length) {
+    // First batch — auto-load and play
+    loadTrack(0);
+    setPlaying(true);
+    audio.play().catch(() => {});
+  }
+}
+
+function renderTrackList() {
+  const list = document.getElementById('track-list');
+  list.innerHTML = tracks.map((t, i) => `
+    <div onclick="trackIdx=${i};loadTrack(${i});setPlaying(true);audio.play().catch(()=>{})"
+         style="font-size:10px;padding:4px 6px;border-radius:3px;cursor:pointer;color:${i===trackIdx?'var(--accent)':'var(--fg3)'};background:${i===trackIdx?'var(--bg3)':'transparent'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.04em;"
+         title="${t.name}">
+      ${i===trackIdx?'▶ ':''}${t.name}
+    </div>
+  `).join('');
+}
+
+addCamera('https://s65.ipcamlive.com/streams/417rcfnksjzevdgif/stream.m3u8', '18 (Vote-by-Mail envelope sorting and signature verification scanning)', 18);
+addCamera('https://s108.ipcamlive.com/streams/6ckgd3s7l6cvjzqme/stream.m3u8', '19 (Vote-by-Mail envelope sorting and signature verification scanning)', 19);
+addCamera('https://s65.ipcamlive.com/streams/41ingopuaq1ejw9fg/stream.m3u8', '29 (Provisional Envelope Imaging and Labeling)', 29);
+addCamera('https://s109.ipcamlive.com/streams/6drxumzhc7lok1zcf/stream.m3u8', '15 (Signature verification)', 15);
+addCamera('https://s109.ipcamlive.com/streams/6dpo3kzbylenxjm67/stream.m3u8', '12 (Ballot remake)', 12);
+addCamera('https://s108.ipcamlive.com/streams/6cy0nvsyzt8fsmnj6/stream.m3u8', '10 (Ballot extraction and preparation)', 10);
+addCamera('https://s109.ipcamlive.com/streams/6dy0psdefuc3xnxpl/stream.m3u8', '11 (Ballot extraction and preparation)', 11);
+addCamera('https://s108.ipcamlive.com/streams/6cjmxumfypygwvfpz/stream.m3u8', '17 (Ballot extraction and preparation)', 17);
+addCamera('https://s65.ipcamlive.com/streams/41ixzdibfa6nwwqvr/stream.m3u8', '07 (Ballot scanning)', 7);
+addCamera('https://s108.ipcamlive.com/streams/6ciqyg98kpbow230j/stream.m3u8', '09 (Ballot scanning)', 9);
+addCamera('https://s108.ipcamlive.com/streams/6cluthjloxkm4d3p5/stream.m3u8', '13 (Ballot adjudication)', 13);
+
+// ─────────────────────────────────────────────
+// PRELOADED TRACKS
+// ─────────────────────────────────────────────
+const preloadedTracks = [
+  { name: 'Lofi Hiphop by SolarFLEX',      url: 'media/solarflex-lofi-hiphop-541533.mp3' },
+  { name: 'LoFi - LoFi Music by The_Mountain',     url: 'media/the_mountain-lofi-lofi-music-496553.mp3' },
+  { name: 'LoFi - LoFi Music by microstar',     url: 'media/mirostar-lofi-lofi-music-531487.mp3' },
+  { name: 'Lofi - Lofi Girl - Lofi Chill 2 by microstar',     url: 'media/mirostar-lofi-lofi-girl-lofi-chill-2-531491.mp3' },
+  { name: 'LoFi - LoFi Music - Lofi Chill by MondaMusic', url: 'media/mondamusic-lofi-lofi-music-lofi-chill-529558.mp3'}
+];
+preloadedTracks.forEach(t => tracks.push(t));
+if (tracks.length) {
+  renderTrackList();
+  loadTrack(0);
+  // Autoplay on first user interaction (browsers block autoplay until gesture)
+  const tryAutoplay = () => {
+    audio.play().then(() => {
+      setPlaying(true);
+      document.removeEventListener('click', tryAutoplay);
+      document.removeEventListener('keydown', tryAutoplay);
+    }).catch(() => {});
+  };
+  // Try immediately (works if page was navigated to with a click)
+  audio.play().then(() => { setPlaying(true); }).catch(() => {
+    // Fall back to first interaction
+    document.addEventListener('click', tryAutoplay);
+    document.addEventListener('keydown', tryAutoplay);
+  });
+}
+
+// ─────────────────────────────────────────────
+// ATTRIBUTION MODAL
+// ─────────────────────────────────────────────
+document.getElementById('credits-btn').addEventListener('click', () => {
+  document.getElementById('modal-backdrop').classList.add('open');
+});
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('modal-backdrop').classList.remove('open');
+});
+document.getElementById('modal-backdrop').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+// ─────────────────────────────────────────────
+// KICK OFF TIMERS
+// ─────────────────────────────────────────────
+setInterval(runMotionDetection, 2000);
+resetCountdown();
+
+// simulated viewer count for fun
+let viewers = 47 + Math.floor(Math.random() * 30);
+document.getElementById('viewer-count').textContent = viewers + ' watching';
+setInterval(() => {
+  viewers += Math.floor(Math.random() * 5) - 2;
+  viewers = Math.max(10, viewers);
+  document.getElementById('viewer-count').textContent = viewers + ' watching';
+}, 8000);
+</script>
+</body>
+</html>
