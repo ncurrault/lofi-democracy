@@ -10,10 +10,13 @@ endpoint (api/cameras.php) shaped like:
 Each link carries an ipcamlive camera alias. ipcamlive's
 getcamerastreamstate.php turns an alias into the stream server address and
 current stream id, from which the HLS URL is built the same way the official
-player does: {address}streams/{streamid}/stream.m3u8
+player does: {address}streams/{streamid}/stream.m3u8, with streams_storage/
+or streams_timeshift/ in place of streams/ when the camera has storage or
+timeshift enabled.
 
-Stream ids change over time, so rerun this whenever the hard-coded URLs in
-index.html stop playing.
+By default the result is written to streams.json, which index.html loads at
+startup. Stream ids change over time, so rerun this whenever the cameras stop
+playing.
 
 sfelections.org sits behind CloudFront, which may reject non-browser
 requests with a 403. If so, save the JSON from your browser (open the
@@ -32,10 +35,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 CAMERAS_URL = "https://sfelections.org/tools/election_video_stream/api/cameras.php"
 STREAM_STATE_URL = "https://g1.ipcamlive.com/player/getcamerastreamstate.php"
 USER_AGENT = "lofi-democracy-stream-resolver/1.0"
+STREAMS_PATH = Path(__file__).resolve().parent.parent / "streams.json"
 
 
 def fetch(url):
@@ -81,7 +86,15 @@ def resolve(camera):
     m3u8 = None
     if state.get("streamavailable") == "1" and state.get("streamid"):
         address = state["address"].replace("http://", "https://", 1)
-        m3u8 = f"{address}streams/{state['streamid']}/stream.m3u8"
+        # Mirrors the player's choice of directory; storage-enabled cameras
+        # 404 under plain streams/.
+        if state.get("storageenabled") == "1":
+            directory = "streams_storage"
+        elif state.get("timeshiftenabled") == "1":
+            directory = "streams_timeshift"
+        else:
+            directory = "streams"
+        m3u8 = f"{address}{directory}/{state['streamid']}/stream.m3u8"
     return dict(camera, alias=alias, m3u8=m3u8)
 
 
@@ -100,11 +113,12 @@ def camera_number(name):
     return int(match.group()) if match else None
 
 
-def format_js(cam):
+def page_record(cam):
+    """The {"id", "label", "url"} shape index.html passes to addCamera."""
     num = camera_number(cam["name"])
     label = f"{num:02d}" if num is not None else cam["name"]
     label += f" ({humanize(cam['activity'])})"
-    return f"addCamera({json.dumps(cam['m3u8'])}, {json.dumps(label)}, {json.dumps(num)});"
+    return {"id": num, "label": label, "url": cam["m3u8"]}
 
 
 def main():
@@ -112,9 +126,16 @@ def main():
     parser.add_argument("--cameras-json", metavar="FILE", help="saved api/cameras.php response")
     parser.add_argument(
         "--format",
-        choices=["js", "json", "urls"],
-        default="js",
-        help="js: addCamera(...) lines for index.html (default); json: full records; urls: bare m3u8 URLs",
+        choices=["page", "json", "urls"],
+        default="page",
+        help="page: write streams.json for index.html (default); json: print full records; urls: print bare m3u8 URLs",
+    )
+    parser.add_argument(
+        "--output",
+        metavar="FILE",
+        type=Path,
+        default=STREAMS_PATH,
+        help=f"where --format page writes (default: {STREAMS_PATH.name} next to index.html)",
     )
     parser.add_argument("--check", action="store_true", help="drop streams whose playlist does not load")
     args = parser.parse_args()
@@ -146,7 +167,9 @@ def main():
     elif args.format == "urls":
         print("\n".join(cam["m3u8"] for cam in available))
     else:
-        print("\n".join(format_js(cam) for cam in available))
+        records = [page_record(cam) for cam in sorted(available, key=lambda cam: cam["name"])]
+        args.output.write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {len(records)} cameras to {args.output}", file=sys.stderr)
 
 
 if __name__ == "__main__":

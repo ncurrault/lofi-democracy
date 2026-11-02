@@ -1,0 +1,67 @@
+[
+  {
+    "id": 7,
+    "label": "07 (Ballot scanning)",
+    "url": "https://s125.ipcamlive.com/streams_storage/7dqqkhzftyigrvf8l/stream.m3u8"
+  },
+  {
+    "id": 9,
+    "label": "09 (Ballot scanning)",
+    "url": "https://s126.ipcamlive.com/streams_storage/7ehue9axqsd8acghw/stream.m3u8"
+  },
+  {
+    "id": 10,
+    "label": "10 (Ballot extraction)",
+    "url": "https://s108.ipcamlive.com/streams/6ciqan1gbvef0uwvp/stream.m3u8"
+  },
+  {
+    "id": 11,
+    "label": "11 (Ballot extraction)",
+    "url": "https://s65.ipcamlive.com/streams/41lpl6v3h5hb8vwj7/stream.m3u8"
+  },
+  {
+    "id": 12,
+    "label": "12 (Ballot remake)",
+    "url": "https://s87.ipcamlive.com/streams_storage/57wwnasex4hgim1e7/stream.m3u8"
+  },
+  {
+    "id": 13,
+    "label": "13 (Ballot adjudication)",
+    "url": "https://s103.ipcamlive.com/streams_storage/67ag02kf4yopterul/stream.m3u8"
+  },
+  {
+    "id": 14,
+    "label": "14 (Ballot adjudication)",
+    "url": "https://s109.ipcamlive.com/streams/6dmdscwsfbpynjtev/stream.m3u8"
+  },
+  {
+    "id": 15,
+    "label": "15 (Signature verification)",
+    "url": "https://s65.ipcamlive.com/streams/41ss2o7vcznfqbaku/stream.m3u8"
+  },
+  {
+    "id": 17,
+    "label": "17 (Ballot extraction)",
+    "url": "https://s60.ipcamlive.com/streams/3cuke4nac1petlbso/stream.m3u8"
+  },
+  {
+    "id": 18,
+    "label": "18 (Vote-by-Mail envelope sorting and signature verification scanning)",
+    "url": "https://s87.ipcamlive.com/streams_storage/57sahfqrh8igpze5c/stream.m3u8"
+  },
+  {
+    "id": 19,
+    "label": "19 (Vote-by-Mail envelope sorting and signature verification scanning)",
+    "url": "https://s141.ipcamlive.com/streams_storage/8diohqedvi251arjo/stream.m3u8"
+  },
+  {
+    "id": 24,
+    "label": "24 (Ballot extraction)",
+    "url": "https://s123.ipcamlive.com/streams/7bd36xpfqkc17ykzb/stream.m3u8"
+  },
+  {
+    "id": 38,
+    "label": "38 (Ballot extraction)",
+    "url": "https://s73.ipcamlive.com/streams/49hv1kszqwxcemior/stream.m3u8"
+  }
+]
