@@ -676,6 +676,8 @@ function switchTo(id) {
   const cam = state.cameras.find(c => c.id === id);
   if (!cam) return;
   state.activeCam = id;
+  cam.lastShown = Date.now();
+  lastMainPixels = null; // don't count the cut itself as motion
 
   if (Hls.isSupported()) {
     mainHls.loadSource(cam.url);
@@ -776,10 +778,21 @@ function resetCountdown() {
 
 function autoSelectBest() {
   if (state.cameras.length < 2) return;
-  // Round-robin with motion bias: pick cam with highest score that isn't active
+  // Weighted random: every cam gets a base chance, plus bonuses for motion
+  // and for not having been shown recently. Motion is only measured while a
+  // cam is on screen, so a pure argmax would ping-pong between known-busy cams.
   const others = state.cameras.filter(c => c.id !== state.activeCam);
-  const best = others.reduce((a, b) => (b.motionScore > a.motionScore ? b : a), others[0]);
-  switchTo(best.id);
+  const maxMotion = Math.max(...others.map(c => c.motionScore || 0), 1);
+  const staleWindow = state.interval * 1000 * state.cameras.length;
+  const now = Date.now();
+  const weights = others.map(c => {
+    const motion = (c.motionScore || 0) / maxMotion;
+    const stale = c.lastShown ? Math.min((now - c.lastShown) / staleWindow, 1) : 1;
+    return 1 + 0.75 * motion + stale;
+  });
+  let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+  const pick = others.find((_, i) => (r -= weights[i]) <= 0) || others[others.length - 1];
+  switchTo(pick.id);
 }
 
 function updateCountdownDisplay() {
