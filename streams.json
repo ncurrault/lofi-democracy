@@ -1,5 +1,10 @@
 [
   {
+    "id": 1,
+    "label": "01 (Ballot remake)",
+    "url": "https://s108.ipcamlive.com/streams/6cjtd7a34be6k1fmq/stream.m3u8"
+  },
+  {
     "id": 2,
     "label": "02 (Signature verification)",
     "url": "https://s108.ipcamlive.com/streams/6c3axiswlvel0kgpv/stream.m3u8"
@@ -22,7 +27,7 @@
   {
     "id": 9,
     "label": "09 (Ballot scanning)",
-    "url": "https://s142.ipcamlive.com/streams_storage/8ewf2jx4ddvylm1ct/stream.m3u8"
+    "url": "https://s103.ipcamlive.com/streams_storage/67tjdipcgyqsof9g2/stream.m3u8"
   },
   {
     "id": 10,
@@ -57,7 +62,7 @@
   {
     "id": 17,
     "label": "17 (Ballot extraction)",
-    "url": "https://s60.ipcamlive.com/streams/3cuke4nac1petlbso/stream.m3u8"
+    "url": "https://s60.ipcamlive.com/streams/3ccusrsbvit61oqca/stream.m3u8"
   },
   {
     "id": 18,
@@ -72,7 +77,7 @@
   {
     "id": 20,
     "label": "20 (Ballot extraction)",
-    "url": "https://s63.ipcamlive.com/streams/3fwk4no0fgsijxjzz/stream.m3u8"
+    "url": "https://s63.ipcamlive.com/streams/3fzvwacs9uofvbxm2/stream.m3u8"
   },
   {
     "id": 22,
@@ -95,8 +100,38 @@
     "url": "https://s108.ipcamlive.com/streams/6cxvmv4qlsknpg0n5/stream.m3u8"
   },
   {
+    "id": 29,
+    "label": "29 (Canvass)",
+    "url": "https://s65.ipcamlive.com/streams/41mycnzu8ebwyxfjx/stream.m3u8"
+  },
+  {
+    "id": 31,
+    "label": "31 (Canvass)",
+    "url": "https://s65.ipcamlive.com/streams/41q4zb8ijyknsalie/stream.m3u8"
+  },
+  {
+    "id": 32,
+    "label": "32 (Canvass)",
+    "url": "https://s109.ipcamlive.com/streams/6dmnyhb4bw8ieid9x/stream.m3u8"
+  },
+  {
+    "id": 33,
+    "label": "33 (Canvass)",
+    "url": "https://s65.ipcamlive.com/streams/41cm3hrxxyp5ozjqi/stream.m3u8"
+  },
+  {
+    "id": 34,
+    "label": "34 (Canvass)",
+    "url": "https://s65.ipcamlive.com/streams/413ndlkcbjpdwintq/stream.m3u8"
+  },
+  {
     "id": 38,
     "label": "38 (Ballot extraction)",
     "url": "https://s73.ipcamlive.com/streams/49gth5rxnatqdi4mu/stream.m3u8"
+  },
+  {
+    "id": 39,
+    "label": "39 (Ballot scanning)",
+    "url": "https://s176.ipcamlive.com/streams_storage/b02gnklcxpoujzyox/stream.m3u8"
   }
 ]
