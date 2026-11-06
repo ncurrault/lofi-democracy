@@ -27,7 +27,7 @@
   {
     "id": 9,
     "label": "09 (Ballot scanning)",
-    "url": "https://s103.ipcamlive.com/streams_storage/67tjdipcgyqsof9g2/stream.m3u8"
+    "url": "https://s142.ipcamlive.com/streams_storage/8ewf2jx4ddvylm1ct/stream.m3u8"
   },
   {
     "id": 10,
@@ -37,7 +37,7 @@
   {
     "id": 11,
     "label": "11 (Ballot extraction)",
-    "url": "https://s65.ipcamlive.com/streams/41lpl6v3h5hb8vwj7/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41dxj2hmnat9yo30k/stream.m3u8"
   },
   {
     "id": 12,
@@ -57,7 +57,7 @@
   {
     "id": 15,
     "label": "15 (Signature verification)",
-    "url": "https://s65.ipcamlive.com/streams/41ss2o7vcznfqbaku/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/4138q0xefavglnlib/stream.m3u8"
   },
   {
     "id": 17,
@@ -82,12 +82,12 @@
   {
     "id": 22,
     "label": "22 (Ballot extraction)",
-    "url": "https://s65.ipcamlive.com/streams/41jcsnxbwumvblovc/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41vo5kznacps7rqdf/stream.m3u8"
   },
   {
     "id": 23,
     "label": "23 (Ballot extraction)",
-    "url": "https://s65.ipcamlive.com/streams/41wkn8vmhrz1xwl36/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41rupoiiyea8k2xnc/stream.m3u8"
   },
   {
     "id": 24,
@@ -102,12 +102,12 @@
   {
     "id": 29,
     "label": "29 (Canvass)",
-    "url": "https://s65.ipcamlive.com/streams/41mycnzu8ebwyxfjx/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41axgr7mfvqecgxdr/stream.m3u8"
   },
   {
     "id": 31,
     "label": "31 (Canvass)",
-    "url": "https://s65.ipcamlive.com/streams/41q4zb8ijyknsalie/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41pzfsceq1hnugrwr/stream.m3u8"
   },
   {
     "id": 32,
@@ -117,17 +117,17 @@
   {
     "id": 33,
     "label": "33 (Canvass)",
-    "url": "https://s65.ipcamlive.com/streams/41cm3hrxxyp5ozjqi/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41hmadbo1lm0gas8f/stream.m3u8"
   },
   {
     "id": 34,
     "label": "34 (Canvass)",
-    "url": "https://s65.ipcamlive.com/streams/413ndlkcbjpdwintq/stream.m3u8"
+    "url": "https://s65.ipcamlive.com/streams/41o2zigxwe5pmsbqa/stream.m3u8"
   },
   {
     "id": 38,
     "label": "38 (Ballot extraction)",
-    "url": "https://s73.ipcamlive.com/streams/49gth5rxnatqdi4mu/stream.m3u8"
+    "url": "https://s73.ipcamlive.com/streams/49fjsb5wem67zxz3x/stream.m3u8"
   },
   {
     "id": 39,
